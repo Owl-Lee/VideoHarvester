@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build output
+bin/
+obj/
+artifacts/
+
+# Local runtime tools and downloads
+yt-dlp.exe
+ffmpeg.exe
+ffprobe.exe
+deno.exe
+*.part
+*.ytdl
+
+# Operating-system files
+Thumbs.db
+.DS_Store
