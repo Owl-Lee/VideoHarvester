@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a reproducible VideoHarvester problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve VideoHarvester. Remove cookies, private URLs, usernames, and local paths from logs before posting.
+
+  - type: input
+    id: version
+    attributes:
+      label: VideoHarvester version
+      placeholder: v2.0.0 Full or Lite
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: website
+    attributes:
+      label: Affected website
+      options:
+        - YouTube
+        - Bilibili
+        - Another website
+        - Not website-specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use a public example URL when possible.
+      placeholder: |
+        1. Paste ...
+        2. Select ...
+        3. Click ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Sanitized diagnostic log
+      description: Use the app's Copy diagnostic log button, then remove sensitive information.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I tested the latest release and tried Update parser.
+          required: true
+        - label: I removed private URLs, cookies, credentials, usernames, and local paths.
+          required: true
