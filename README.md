@@ -7,6 +7,7 @@
 [![Windows](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows11&logoColor=white)](https://github.com/Owl-Lee/VideoHarvester/releases/latest)
 [![C#](https://img.shields.io/badge/Built%20with-C%23-512BD4?logo=dotnet&logoColor=white)](https://github.com/Owl-Lee/VideoHarvester)
 [![Latest Release](https://img.shields.io/github/v/release/Owl-Lee/VideoHarvester?label=Release)](https://github.com/Owl-Lee/VideoHarvester/releases/latest)
+[![Windows build](https://github.com/Owl-Lee/VideoHarvester/actions/workflows/build.yml/badge.svg)](https://github.com/Owl-Lee/VideoHarvester/actions/workflows/build.yml)
 
 [Website](https://video-harvester-pro.liyanbao06.chatgpt.site/) ·
 [Download Full](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Full.zip) ·
@@ -99,6 +100,25 @@ VideoHarvester adds a product layer around those tools:
 - human-readable error translation with copyable raw diagnostics;
 - collection-aware folder and filename generation.
 
+## Source and development
+
+The repository contains the maintainable C# Windows Forms source, a Visual Studio solution, repeatable PowerShell build scripts, and framework-free core checks that can run on a clean Windows build agent.
+
+```text
+src/VideoHarvester.App/          Desktop application and reusable core rules
+tests/VideoHarvester.Core.Tests/ Executable core-check suite
+scripts/                         Local build and test entry points
+docs/                            Architecture and development notes
+```
+
+On Windows with the .NET Framework 4.7.2 Developer Pack installed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1
+```
+
+See [Development](docs/DEVELOPMENT.md) for setup instructions, [Architecture](docs/ARCHITECTURE.md) for the application flow and source map, and the [product case study](docs/CASE_STUDY.md) for the design decisions behind the workflow.
+
 ## Privacy and permissions
 
 - Downloads and media processing happen locally.
@@ -119,15 +139,16 @@ Please download only content that you own, that is in the public domain, or that
 
 ## Roadmap
 
-- Organize the application source into a maintainable public project structure.
-- Add automated builds and release checks.
-- Add unit tests for URL recognition, duplicate keys, and error translation.
 - Improve accessibility and high-DPI behavior.
+- Expand automated UI and integration coverage.
+- Add a reproducible release-packaging workflow.
 - Add signed Windows releases when practical.
 
 ## Acknowledgements
 
 VideoHarvester builds on the work of [yt-dlp](https://github.com/yt-dlp/yt-dlp), [FFmpeg](https://ffmpeg.org/), and [Deno](https://deno.com/). Each bundled third-party component remains subject to its own license.
+
+See [Third-party notices](THIRD_PARTY_NOTICES.md) for source and license links.
 
 ---
 
