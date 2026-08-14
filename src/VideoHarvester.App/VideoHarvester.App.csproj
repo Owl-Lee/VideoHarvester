@@ -7,6 +7,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>VideoHarvester.App</RootNamespace>
     <AssemblyName>VideoHarvester</AssemblyName>
+    <ApplicationIcon>..\..\assets\VideoHarvester.ico</ApplicationIcon>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

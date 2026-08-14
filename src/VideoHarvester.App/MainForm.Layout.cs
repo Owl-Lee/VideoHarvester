@@ -193,7 +193,7 @@ namespace VideoHarvester.App
             }
             ;
             animation.Start();
-            notify.Icon=SystemIcons.Information;
+            notify.Icon=Icon??SystemIcons.Information;
             notify.Visible=true;
             notify.Text="VideoHarvester";
         }
