@@ -97,6 +97,7 @@ namespace VideoHarvester.App
                     d["estimated"]=j.EstimatedBytes;
                     d["groupIndex"]=j.GroupIndex;
                     d["groupCount"]=j.GroupCount;
+                    d["outputSuffix"]=j.OutputSuffix;
                     list.Add(d);
                 }
                 var js=new JavaScriptSerializer();
@@ -148,6 +149,7 @@ namespace VideoHarvester.App
                     j.EstimatedBytes=LongObject(d,"estimated");
                     j.GroupIndex=IntObject(d,"groupIndex");
                     j.GroupCount=IntObject(d,"groupCount");
+                    j.OutputSuffix=StringValue(d,"outputSuffix");
                     string old;
                     if(history.TryGetValue(j.Key,out old)&&File.Exists(old)) {
                         j.Existing=true;

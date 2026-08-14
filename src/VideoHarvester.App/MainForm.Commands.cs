@@ -167,8 +167,11 @@ namespace VideoHarvester.App
             var menu=new ContextMenuStrip();
             var done=menu.Items.Add("清除已完成和已跳过的任务");
             var all=menu.Items.Add("清除全部任务记录");
+            menu.Items.Add(new ToolStripSeparator());
+            var partials=menu.Items.Add("清理未完成的临时文件（.part）");
             done.Click+=(s,e)=>ClearCompleted();
             all.Click+=(s,e)=>ClearAllRecords();
+            partials.Click+=(s,e)=>ClearPartialFiles();
             menu.Show(clearRecords,new Point(0,clearRecords.Height));
         }
         void ClearCompleted() {
@@ -199,6 +202,56 @@ namespace VideoHarvester.App
             queueLabel.Text="总任务 0/0";
             SetStage("任务记录已清空");
             SaveQueue(true);
+        }
+        void ClearPartialFiles() {
+            if(!start.Enabled) {
+                MessageBox.Show("请先取消或等待当前任务结束，再清理临时文件。");
+                return;
+            }
+            try {
+                string target=Path.GetFullPath(folder.Text);
+                string driveRoot=Path.GetPathRoot(target).TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+                if(target.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar).Equals(driveRoot,StringComparison.OrdinalIgnoreCase)) {
+                    MessageBox.Show("为了安全，不能直接扫描整个磁盘。请先选择一个具体的下载文件夹。");
+                    return;
+                }
+                if(!Directory.Exists(target)) {
+                    MessageBox.Show("当前保存目录中没有临时文件。");
+                    return;
+                }
+                var files=Directory.GetFiles(target,"*.part",SearchOption.AllDirectories);
+                if(files.Length==0) {
+                    MessageBox.Show("当前保存目录中没有 .part 临时文件。");
+                    return;
+                }
+                long total=0;
+                foreach(var file in files)try {
+                    total+=new FileInfo(file).Length;
+                }
+                catch {
+                }
+                string question="找到 "+files.Length+" 个未完成的临时文件，共 "+FormatBytes(total)+"。\n\n删除后无法从这些分片断点续传；已经完成的视频不会被删除。\n\n确定清理吗？";
+                if(MessageBox.Show(question,"清理临时文件",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;
+                int removed=0;
+                long freed=0;
+                var errors=new List<string>();
+                foreach(var file in files)try {
+                    long size=new FileInfo(file).Length;
+                    File.Delete(file);
+                    freed+=size;
+                    removed++;
+                }
+                catch(Exception ex) {
+                    errors.Add(Path.GetFileName(file)+"："+ex.Message);
+                }
+                SetStage("已清理 "+removed+" 个临时文件");
+                string result="已清理 "+removed+" 个临时文件，释放 "+FormatBytes(freed)+"。";
+                if(errors.Count>0)result+="\n\n另有 "+errors.Count+" 个文件无法删除；它们可能正被其他程序使用。";
+                MessageBox.Show(result,"清理完成",MessageBoxButtons.OK,errors.Count>0?MessageBoxIcon.Warning:MessageBoxIcon.Information);
+            }
+            catch(Exception ex) {
+                MessageBox.Show("无法扫描临时文件："+ex.Message,"清理失败",MessageBoxButtons.OK,MessageBoxIcon.Warning);
+            }
         }
         void Notify(string text) {
             try {

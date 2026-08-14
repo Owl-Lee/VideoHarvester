@@ -275,19 +275,28 @@ namespace VideoHarvester.App
             currentFile="";
             currentTitle="";
             completedFiles.Clear();
+            DateTime runStartedUtc=DateTime.UtcNow;
             var tcs=new TaskCompletionSource<int>();
             string limit=quality.SelectedIndex==0?"":"[height<="+quality.SelectedItem.ToString().Replace("p","")+"]";
             string fmt=audio.Checked?"ba/b":"bv*"+limit+"+ba/b"+limit;
-            string baseName=duplicate.SelectedIndex==2?"%(title).160B [%(id)s]-%(epoch)s.%(ext)s":"%(title).170B [%(id)s].%(ext)s";
-            string target=folder.Text,output=baseName;
+            string target=folder.Text;
+            if(!j.WholeList&&j.Group!="") {
+                target=Path.Combine(folder.Text,SafeName(j.Group));
+            }
+            Directory.CreateDirectory(target);
+            if(duplicate.SelectedIndex==2&&String.IsNullOrEmpty(j.OutputSuffix)) {
+                j.OutputSuffix=FindReusableAutomaticSuffix(target,j.Key);
+                if(String.IsNullOrEmpty(j.OutputSuffix))j.OutputSuffix=DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+                SaveQueue(true);
+            }
+            string baseName=duplicate.SelectedIndex==2?"%(title).160B [%(id)s]-"+j.OutputSuffix+".%(ext)s":"%(title).170B [%(id)s].%(ext)s";
+            string output=baseName;
             if(j.WholeList)output="%(playlist).100B/%(playlist_index)03d - "+baseName;
             else if(j.Group!="") {
-                target=Path.Combine(folder.Text,SafeName(j.Group));
                 int digits=Math.Max(2,j.GroupCount.ToString().Length);
                 output=(j.GroupIndex>0?j.GroupIndex.ToString("D"+digits)+" - ":"")+baseName;
             }
-            Directory.CreateDirectory(target);
-            string args="--encoding utf-8 --newline --windows-filenames --continue --retries 8 --fragment-retries 8 --ffmpeg-location \""+Path.Combine(root,"ffmpeg.exe")+"\" --js-runtimes \"deno:"+Path.Combine(root,"deno.exe")+"\" -f \""+fmt+"\" --print \"before_dl:VH_TITLE:%(title)s\" --print \"after_move:VH_FILE:%(filepath)s\"";
+            string args="--encoding utf-8 --newline --windows-filenames --continue --retries 10 --fragment-retries 10 --file-access-retries 5 --retry-sleep 1 --ffmpeg-location \""+Path.Combine(root,"ffmpeg.exe")+"\" --js-runtimes \"deno:"+Path.Combine(root,"deno.exe")+"\" -f \""+fmt+"\" --print \"before_dl:VH_TITLE:%(title)s\" --print \"after_move:VH_FILE:%(filepath)s\"";
             args+=" --print \"after_move:VH_META:%(resolution)s\"";
             args+=j.WholeList?" --yes-playlist":" --no-playlist";
             if(audio.Checked)args+=" -x --audio-format mp3 --audio-quality 0";
@@ -332,7 +341,15 @@ namespace VideoHarvester.App
                     history[j.Key]=j.File;
                     SaveHistory();
                 }
-                SetFriendly(j,"下载完成，文件已经保存。");
+                var finished=new List<string>(completedFiles);
+                if(File.Exists(j.File)&&!finished.Contains(j.File))finished.Add(j.File);
+                int removedParts;
+                long removedBytes=CleanupCompletedPartFiles(finished,out removedParts);
+                if(removedParts>0) {
+                    j.Diagnostic.AppendLine("CLEANUP: removed "+removedParts+" stale partial file(s), "+removedBytes+" bytes.");
+                    SetFriendly(j,"下载完成，并已自动清理 "+removedParts+" 个残留分片（"+FormatBytes(removedBytes)+"）。");
+                }
+                else SetFriendly(j,"下载完成，文件已经保存。");
                 UpdateRow(j);
                 j.Row.Selected=true;
                 j.Row.EnsureVisible();
@@ -342,9 +359,74 @@ namespace VideoHarvester.App
                 j.State="失败";
                 if(String.IsNullOrEmpty(j.Error))j.Error="下载失败，请复制诊断日志后发送给开发者。";
                 SetFriendly(j,j.Error);
+                if(HasPartialFileForJob(target,j.Key,runStartedUtc))SetFriendly(j,"已保留未完成的临时分片；点击“重试”会从已下载部分继续，成功后会自动清理。");
                 UpdateRow(j);
                 ShowSelected();
             }
+        }
+
+        string FindReusableAutomaticSuffix(string target,string key) {
+            try {
+                if(!Directory.Exists(target))return "";
+                var files=Directory.GetFiles(target,"*.part",SearchOption.AllDirectories);
+                Array.Sort(files,(a,b)=>File.GetLastWriteTimeUtc(b).CompareTo(File.GetLastWriteTimeUtc(a)));
+                foreach(var file in files) {
+                    string suffix=DownloadRules.ExtractAutomaticSuffixFromPartialFile(file,key);
+                    if(suffix!="")return suffix;
+                }
+            }
+            catch(Exception ex) {
+                if(active!=null)active.Diagnostic.AppendLine("PART RESUME SCAN: "+ex.Message);
+            }
+            return "";
+        }
+
+        bool HasPartialFileForJob(string target,string key,DateTime runStartedUtc) {
+            try {
+                if(!Directory.Exists(target))return false;
+                string expected=DownloadRules.ExtractMediaIdFromKey(key);
+                foreach(var file in Directory.GetFiles(target,"*.part",SearchOption.AllDirectories)) {
+                    string actual=DownloadRules.ExtractBracketedMediaId(file);
+                    if(expected!=""&&String.Equals(expected,actual,StringComparison.OrdinalIgnoreCase))return true;
+                    if(expected==""&&File.GetLastWriteTimeUtc(file)>=runStartedUtc.AddSeconds(-2))return true;
+                }
+            }
+            catch(Exception ex) {
+                if(active!=null)active.Diagnostic.AppendLine("PART FAILURE SCAN: "+ex.Message);
+            }
+            return false;
+        }
+
+        long CleanupCompletedPartFiles(IEnumerable<string> completed,out int removed) {
+            removed=0;
+            long bytes=0;
+            var seen=new List<string>();
+            foreach(var completedFile in completed) {
+                string id=DownloadRules.ExtractBracketedMediaId(completedFile);
+                string dir=Path.GetDirectoryName(completedFile);
+                string marker=(dir??"")+"|"+id;
+                if(id==""||String.IsNullOrEmpty(dir)||seen.Contains(marker)||!Directory.Exists(dir))continue;
+                seen.Add(marker);
+                try {
+                    foreach(var part in Directory.GetFiles(dir,"*.part",SearchOption.TopDirectoryOnly)) {
+                        if(!String.Equals(id,DownloadRules.ExtractBracketedMediaId(part),StringComparison.OrdinalIgnoreCase))continue;
+                        long size=0;
+                        try {
+                            size=new FileInfo(part).Length;
+                            File.Delete(part);
+                            bytes+=size;
+                            removed++;
+                        }
+                        catch(Exception ex) {
+                            if(active!=null)active.Diagnostic.AppendLine("PART CLEANUP FAILED: "+part+" | "+ex.Message);
+                        }
+                    }
+                }
+                catch(Exception ex) {
+                    if(active!=null)active.Diagnostic.AppendLine("PART CLEANUP SCAN: "+dir+" | "+ex.Message);
+                }
+            }
+            return bytes;
         }
     }
 }

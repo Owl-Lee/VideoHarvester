@@ -22,6 +22,10 @@ namespace VideoHarvester.App.Core
             @"(BV[0-9A-Za-z]+)(?:.*?[?&]p=(\d+))?",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex BracketedMediaIdPattern = new Regex(
+            @"\[([0-9A-Za-z_-]{6,})\](?:-([0-9]+))?(?:\.[^.]+)+$",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         internal static bool IsYouTubePlaylist(string url)
         {
             return !string.IsNullOrWhiteSpace(url)
@@ -55,6 +59,53 @@ namespace VideoHarvester.App.Core
             }
 
             return result.Length > 100 ? result.Substring(0, 100) : result;
+        }
+
+        internal static string ExtractBracketedMediaId(string path)
+        {
+            var match = BracketedMediaIdPattern.Match(Path.GetFileName(path ?? string.Empty));
+            return match.Success ? match.Groups[1].Value : string.Empty;
+        }
+
+        internal static string ExtractMediaIdFromKey(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                return string.Empty;
+            }
+
+            if (key.StartsWith("Youtube:", StringComparison.OrdinalIgnoreCase))
+            {
+                return key.Substring("Youtube:".Length);
+            }
+
+            if (key.StartsWith("BiliBili:", StringComparison.OrdinalIgnoreCase))
+            {
+                var value = key.Substring("BiliBili:".Length);
+                var match = Regex.Match(value, @"^(BV[0-9A-Za-z]+)(?:_p\d+)?$", RegexOptions.IgnoreCase);
+                return match.Success ? match.Groups[1].Value : string.Empty;
+            }
+
+            return string.Empty;
+        }
+
+        internal static string ExtractAutomaticSuffixFromPartialFile(string path, string key)
+        {
+            if (string.IsNullOrWhiteSpace(path)
+                || !path.EndsWith(".part", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            var expectedId = ExtractMediaIdFromKey(key);
+            var match = BracketedMediaIdPattern.Match(Path.GetFileName(path));
+            if (!match.Success || !match.Groups[2].Success
+                || !string.Equals(expectedId, match.Groups[1].Value, StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            return match.Groups[2].Value;
         }
 
         internal static string FormatBytes(long bytes)

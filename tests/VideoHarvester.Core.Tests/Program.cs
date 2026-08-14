@@ -26,6 +26,18 @@ namespace VideoHarvester.Core.Tests
             Equal("Byte formatting", "1.0 MB", DownloadRules.FormatBytes(1024 * 1024));
             Equal("Unknown byte formatting", "--", DownloadRules.FormatBytes(0));
             Equal("Filename limit", 100, DownloadRules.CreateSafeFileName(new string('a', 105)).Length);
+            Equal("Completed filename media id", "_GD1VIcs9Kg",
+                DownloadRules.ExtractBracketedMediaId("Example [_GD1VIcs9Kg]-1786726779.mp4"));
+            Equal("Partial filename media id", "_GD1VIcs9Kg",
+                DownloadRules.ExtractBracketedMediaId("Example [_GD1VIcs9Kg]-1786726766.f303.webm.part"));
+            Equal("Reusable automatic suffix", "1786726766",
+                DownloadRules.ExtractAutomaticSuffixFromPartialFile(
+                    "Example [_GD1VIcs9Kg]-1786726766.f303.webm.part", "Youtube:_GD1VIcs9Kg"));
+            Equal("Reject suffix from another video", string.Empty,
+                DownloadRules.ExtractAutomaticSuffixFromPartialFile(
+                    "Example [otherVideo1]-1786726766.f303.webm.part", "Youtube:_GD1VIcs9Kg"));
+            Equal("Bilibili key media id", "BV1Qh41187jq",
+                DownloadRules.ExtractMediaIdFromKey("BiliBili:BV1Qh41187jq_p3"));
 
             Equal("Format error translation", "所选画质当前不可用，请尝试“最佳可用画质”。",
                 UserMessageTranslator.FromDiagnosticLine("ERROR: Requested format is not available"));
