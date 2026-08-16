@@ -44,10 +44,18 @@ namespace VideoHarvester.App
         }
         async Task PreflightJob(DownloadJob j) {
             if(j.WholeList) {
-                string flat="--flat-playlist --dump-single-json --skip-download --yes-playlist --no-warnings"+(login.Checked?" --cookies-from-browser "+browser.SelectedItem:"")+" \""+j.Url.Replace("\"","")+"\"";
+                bool useBrowserCookies=login.Checked;
+                string flat="--flat-playlist --dump-single-json --skip-download --yes-playlist --no-warnings"+BrowserCookieArgs(useBrowserCookies)+" \""+j.Url.Replace("\"","")+"\"";
                 var listData=await RunCapture(engine,flat);
                 j.Diagnostic.AppendLine("PREFLIGHT LIST ARGS: "+flat);
                 j.Diagnostic.AppendLine(listData.Item2);
+                if(useBrowserCookies&&HasCookieDatabaseReadError(listData.Item2)) {
+                    flat="--flat-playlist --dump-single-json --skip-download --yes-playlist --no-warnings \""+j.Url.Replace("\"","")+"\"";
+                    listData=await RunCapture(engine,flat);
+                    j.Diagnostic.AppendLine("PREFLIGHT LIST FALLBACK (without browser login): "+flat);
+                    j.Diagnostic.AppendLine(listData.Item2);
+                    SetFriendly(j,"浏览器登录信息暂时无法读取，已自动改用未登录模式继续。");
+                }
                 try {
                     var js=new JavaScriptSerializer();
                     js.MaxJsonLength=Int32.MaxValue;
@@ -69,10 +77,18 @@ namespace VideoHarvester.App
             }
             string limit=quality.SelectedIndex==0?"":"[height<="+quality.SelectedItem.ToString().Replace("p","")+"]";
             string fmt=audio.Checked?"ba/b":"bv*"+limit+"+ba/b"+limit;
-            string args="--dump-single-json --skip-download --no-warnings --no-playlist -f \""+fmt+"\" --js-runtimes \"deno:"+Path.Combine(root,"deno.exe")+"\""+(login.Checked?" --cookies-from-browser "+browser.SelectedItem:"")+" \""+j.Url.Replace("\"","")+"\"";
+            bool useCookies=login.Checked;
+            string args="--dump-single-json --skip-download --no-warnings --no-playlist -f \""+fmt+"\" --js-runtimes \"deno:"+Path.Combine(root,"deno.exe")+"\""+BrowserCookieArgs(useCookies)+" \""+j.Url.Replace("\"","")+"\"";
             var output=await RunCapture(engine,args);
             j.Diagnostic.AppendLine("PREFLIGHT ARGS: "+args);
             j.Diagnostic.AppendLine(output.Item2);
+            if(useCookies&&HasCookieDatabaseReadError(output.Item2)) {
+                args="--dump-single-json --skip-download --no-warnings --no-playlist -f \""+fmt+"\" --js-runtimes \"deno:"+Path.Combine(root,"deno.exe")+"\" \""+j.Url.Replace("\"","")+"\"";
+                output=await RunCapture(engine,args);
+                j.Diagnostic.AppendLine("PREFLIGHT FALLBACK (without browser login): "+args);
+                j.Diagnostic.AppendLine(output.Item2);
+                SetFriendly(j,"浏览器登录信息暂时无法读取，已自动改用未登录模式继续。");
+            }
             if(output.Item1=="") {
                 j.State="预检失败";
                 j.Error=TranslateTechnical(output.Item2);
@@ -131,6 +147,13 @@ namespace VideoHarvester.App
             await Task.WhenAll(a,b);
             p.WaitForExit();
             return Tuple.Create(a.Result,b.Result);
+        }
+        string BrowserCookieArgs(bool enabled) {
+            return enabled?" --cookies-from-browser "+browser.SelectedItem:"";
+        }
+        bool HasCookieDatabaseReadError(string text) {
+            return !String.IsNullOrEmpty(text)
+                && text.IndexOf("Could not copy Chrome cookie database",StringComparison.OrdinalIgnoreCase)>=0;
         }
         int IntValue(Dictionary<string,object>d,string key) {
             if(!d.ContainsKey(key)||d[key]==null)return 0;

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/VideoHarvester-icon.png" width="128" alt="VideoHarvester app icon">
+
 # VideoHarvester
 
 **A local-first Windows desktop app for saving videos you are authorized to download.**

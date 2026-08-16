@@ -21,7 +21,7 @@ namespace VideoHarvester.App
         public bool WholeList;
         public StringBuilder Diagnostic=new StringBuilder();
         public List<string> Friendly=new List<string>();
-        public string Group="", Key="", Requested="", Actual="待确认";
+        public string Group="", Key="", Requested="", Actual="待确认", OutputSuffix="";
         public long EstimatedBytes;
         public int GroupIndex, GroupCount;
         public bool Existing;

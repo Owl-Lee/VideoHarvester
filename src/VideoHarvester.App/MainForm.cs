@@ -62,6 +62,11 @@ namespace VideoHarvester.App
             ForeColor=Color.FromArgb(25,34,48);
             root=AppDomain.CurrentDomain.BaseDirectory;
             engine=Path.Combine(root,"yt-dlp.exe");
+            try {
+                Icon=Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            }
+            catch {
+            }
             Build();
             LoadSettings();
             LoadHistory();
