@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -106,6 +107,41 @@ namespace VideoHarvester.App.Core
             }
 
             return match.Groups[2].Value;
+        }
+
+        internal static string[] RemoveMatchingUrlLines(string[] lines, IEnumerable<string> urls, out int removed)
+        {
+            var matches = new HashSet<string>(StringComparer.Ordinal);
+            if (urls != null)
+            {
+                foreach (var url in urls)
+                {
+                    if (!string.IsNullOrWhiteSpace(url))
+                    {
+                        matches.Add(url.Trim());
+                    }
+                }
+            }
+
+            var remaining = new List<string>();
+            removed = 0;
+            if (lines == null)
+            {
+                return remaining.ToArray();
+            }
+
+            foreach (var line in lines)
+            {
+                if (matches.Contains((line ?? string.Empty).Trim()))
+                {
+                    removed++;
+                    continue;
+                }
+
+                remaining.Add(line);
+            }
+
+            return remaining.ToArray();
         }
 
         internal static string FormatBytes(long bytes)

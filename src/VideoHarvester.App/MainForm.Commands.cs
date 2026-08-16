@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
+using VideoHarvester.App.Core;
 
 namespace VideoHarvester.App
 {
@@ -165,8 +166,8 @@ namespace VideoHarvester.App
         }
         void ShowClearMenu() {
             var menu=new ContextMenuStrip();
-            var done=menu.Items.Add("清除已完成和已跳过的任务");
-            var all=menu.Items.Add("清除全部任务记录");
+            var done=menu.Items.Add("清除已完成和已跳过的任务及链接");
+            var all=menu.Items.Add("清除全部任务记录及链接");
             menu.Items.Add(new ToolStripSeparator());
             var partials=menu.Items.Add("清理未完成的临时文件（.part）");
             done.Click+=(s,e)=>ClearCompleted();
@@ -176,6 +177,8 @@ namespace VideoHarvester.App
         }
         void ClearCompleted() {
             var remove=jobs.FindAll(j=>j.State=="完成"||j.State=="已跳过");
+            int linksRemoved=0;
+            if(remove.Count>0)urls.Lines=DownloadRules.RemoveMatchingUrlLines(urls.Lines,remove.ConvertAll(j=>j.Url),out linksRemoved);
             foreach(var j in remove) {
                 if(j.Row!=null)tasks.Items.Remove(j.Row);
                 jobs.Remove(j);
@@ -183,7 +186,7 @@ namespace VideoHarvester.App
             if(remove.Count==0)MessageBox.Show("当前没有可清除的已完成记录。");
             else {
                 details.Clear();
-                SetStage("已清除 "+remove.Count+" 条任务记录");
+                SetStage("已清除 "+remove.Count+" 条任务记录"+(linksRemoved>0?"，并移除 "+linksRemoved+" 条已完成链接":""));
                 SaveQueue(true);
             }
         }
@@ -192,15 +195,16 @@ namespace VideoHarvester.App
                 MessageBox.Show("请先取消或等待当前任务结束，再清除记录。");
                 return;
             }
-            if(jobs.Count==0)return;
-            if(MessageBox.Show("确定清除界面中的全部任务记录吗？\n\n已经下载的视频不会被删除。","清理记录",MessageBoxButtons.YesNo,MessageBoxIcon.Question)!=DialogResult.Yes)return;
+            if(jobs.Count==0&&String.IsNullOrWhiteSpace(urls.Text))return;
+            if(MessageBox.Show("确定清除界面中的全部任务记录和上方链接吗？\n\n已经下载的视频不会被删除。","清理记录",MessageBoxButtons.YesNo,MessageBoxIcon.Question)!=DialogResult.Yes)return;
             jobs.Clear();
             tasks.Items.Clear();
+            urls.Clear();
             details.Clear();
             overall.Value=0;
             metrics.Text="当前 0%";
             queueLabel.Text="总任务 0/0";
-            SetStage("任务记录已清空");
+            SetStage("任务记录和链接已清空");
             SaveQueue(true);
         }
         void ClearPartialFiles() {

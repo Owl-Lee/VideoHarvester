@@ -38,6 +38,12 @@ namespace VideoHarvester.Core.Tests
                     "Example [otherVideo1]-1786726766.f303.webm.part", "Youtube:_GD1VIcs9Kg"));
             Equal("Bilibili key media id", "BV1Qh41187jq",
                 DownloadRules.ExtractMediaIdFromKey("BiliBili:BV1Qh41187jq_p3"));
+            int removedUrls;
+            var remainingUrls = DownloadRules.RemoveMatchingUrlLines(
+                new[] { " https://example.com/done ", "https://example.com/failed", "" },
+                new[] { "https://example.com/done" }, out removedUrls);
+            Equal("Completed links removed", 1, removedUrls);
+            Equal("Unfinished link retained", "https://example.com/failed", remainingUrls[0]);
 
             Equal("Format error translation", "所选画质当前不可用，请尝试“最佳可用画质”。",
                 UserMessageTranslator.FromDiagnosticLine("ERROR: Requested format is not available"));
