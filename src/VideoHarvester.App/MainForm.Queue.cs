@@ -105,8 +105,12 @@ namespace VideoHarvester.App
             var result=new List<Tuple<string,string>>();
             try {
                 SetStage("正在读取 YouTube 播放列表");
-                string args="--flat-playlist --dump-single-json --skip-download --yes-playlist --no-warnings"+(login.Checked?" --cookies-from-browser "+browser.SelectedItem:"")+" \""+url.Replace("\"","")+"\"";
+                string args="--flat-playlist --dump-single-json --skip-download --yes-playlist --no-warnings"+BrowserCookieArgs(login.Checked)+" \""+url.Replace("\"","")+"\"";
                 var captured=await RunCapture(engine,args);
+                if(login.Checked&&HasCookieDatabaseReadError(captured.Item2)) {
+                    args="--flat-playlist --dump-single-json --skip-download --yes-playlist --no-warnings \""+url.Replace("\"","")+"\"";
+                    captured=await RunCapture(engine,args);
+                }
                 if(String.IsNullOrWhiteSpace(captured.Item1))return result;
                 var js=new JavaScriptSerializer();
                 js.MaxJsonLength=Int32.MaxValue;
@@ -240,8 +244,8 @@ namespace VideoHarvester.App
                 }
                 SetStage(runFailed>0?"任务处理完成 · 有失败项目":"全部任务处理完成");
                 queueLabel.Text="总任务 "+list.Count+"/"+list.Count;
-                Notify("下载任务已处理完成");
-                if(completion.SelectedIndex==0) {
+                if(runSuccess>0)Notify(runFailed>0?"下载已完成，但有失败项目":"下载任务已处理完成");
+                if(runSuccess>0&&completion.SelectedIndex==0) {
                     if(currentRunIsBatch)ShowBatchSummary();
                     else if(runFiles.Count==1)AskOpenFile(runFiles[0],false);
                 }
@@ -264,7 +268,7 @@ namespace VideoHarvester.App
                 SaveQueue(true);
             }
         }
-        async Task RunJob(DownloadJob j) {
+        async Task RunJob(DownloadJob j,bool allowBrowserCookieFallback=true) {
             j.State="正在解析";
             j.Row.Selected=true;
             j.Row.EnsureVisible();
@@ -301,11 +305,12 @@ namespace VideoHarvester.App
             args+=j.WholeList?" --yes-playlist":" --no-playlist";
             if(audio.Checked)args+=" -x --audio-format mp3 --audio-quality 0";
             else args+=" --merge-output-format mp4";
-            if(login.Checked)args+=" --cookies-from-browser "+browser.SelectedItem;
+            bool useBrowserCookies=login.Checked&&allowBrowserCookieFallback;
+            args+=BrowserCookieArgs(useBrowserCookies);
             if(duplicate.SelectedIndex==1)args+=" --force-overwrites";
             else args+=" --no-overwrites";
             args+=" -o \""+Path.Combine(target,output)+"\" \""+j.Url.Replace("\"","")+"\"";
-            if(login.Checked) {
+            if(useBrowserCookies) {
                 var ps=Process.GetProcessesByName(browser.SelectedItem.ToString());
                 if(ps.Length>0)SetFriendly(j,"检测到浏览器正在运行；如登录读取失败，请关闭浏览器后重试。");
             }
@@ -332,6 +337,13 @@ namespace VideoHarvester.App
             int code=await tcs.Task;
             current.WaitForExit();
             await Task.Delay(150);
+            if(code!=0&&useBrowserCookies&&HasCookieDatabaseReadError(j.Diagnostic.ToString())) {
+                j.Diagnostic.AppendLine("COOKIE FALLBACK: browser login could not be read; retrying without browser login.");
+                j.Error="";
+                SetFriendly(j,"浏览器登录信息暂时无法读取，已自动改用未登录模式重试。");
+                await RunJob(j,false);
+                return;
+            }
             if(code==0) {
                 j.State="完成";
                 j.Progress=100;

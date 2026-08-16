@@ -51,6 +51,8 @@ namespace VideoHarvester.Core.Tests
                 UserMessageTranslator.FromDiagnosticLine("ERROR: TLS connection timed out"));
             Equal("Warning fallback", "网站返回了一条提示，程序仍在继续处理。",
                 UserMessageTranslator.FromDiagnosticLine("WARNING: extractor message"));
+            Equal("Browser cookie lock translation", "浏览器登录信息读取失败，软件将自动改用未登录模式继续。",
+                UserMessageTranslator.FromDiagnosticLine("ERROR: Could not copy Chrome cookie database"));
 
             if (failures > 0)
             {

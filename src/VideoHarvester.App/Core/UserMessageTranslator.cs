@@ -12,9 +12,9 @@ namespace VideoHarvester.App.Core
                 return "当前画质或内容需要登录及相应账号权限。";
             if (value.Contains("requested format is not available"))
                 return "所选画质当前不可用，请尝试“最佳可用画质”。";
-            if (value.Contains("cookies")
+            if ((value.Contains("cookies") || value.Contains("cookie"))
                 && (value.Contains("error") || value.Contains("failed") || value.Contains("could not")))
-                return "浏览器登录信息读取失败，请关闭对应浏览器后重试。";
+                return "浏览器登录信息读取失败，软件将自动改用未登录模式继续。";
             if (value.Contains("403") || value.Contains("forbidden"))
                 return "网站拒绝了当前请求，请尝试登录或稍后重试。";
             if (value.Contains("ssl") || value.Contains("tls")
