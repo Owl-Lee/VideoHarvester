@@ -14,6 +14,7 @@
 [Website](https://videoharvester.app/) ·
 [Download Full](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Full.zip) ·
 [Download Lite](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Lite.zip) ·
+[Release notes](docs/RELEASES/v2.0.3.md) ·
 [中文说明](#中文说明)
 
 </div>
@@ -173,5 +174,6 @@ VideoHarvester 是一个本地运行的 Windows 视频保存工具，目标是�
 
 - [完整版（推荐）](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Full.zip)：包含必要组件，解压后即可使用。
 - [轻量版](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Lite.zip)：体积更小，首次使用时会准备相关组件。
+- [v2.0.3 中英文发布说明](docs/RELEASES/v2.0.3.md#简体中文)
 
 请只保存您拥有、处于公共领域或已经获得授权的内容。本软件不绕过 DRM、付费墙、私密视频或账号权限。
