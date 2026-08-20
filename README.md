@@ -11,7 +11,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/Owl-Lee/VideoHarvester?label=Release)](https://github.com/Owl-Lee/VideoHarvester/releases/latest)
 [![Windows build](https://github.com/Owl-Lee/VideoHarvester/actions/workflows/build.yml/badge.svg)](https://github.com/Owl-Lee/VideoHarvester/actions/workflows/build.yml)
 
-[Website](https://video-harvester-pro.liyanbao06.chatgpt.site/) ·
+[Website](https://videoharvester.app/) ·
 [Download Full](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Full.zip) ·
 [Download Lite](https://github.com/Owl-Lee/VideoHarvester/releases/latest/download/VideoHarvester-v2.0-Lite.zip) ·
 [中文说明](#中文说明)
